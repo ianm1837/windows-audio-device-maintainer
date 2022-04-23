@@ -1,17 +1,10 @@
-const { app, BrowserWindow, ipcMain } = require('electron')
+const { app, BrowserWindow, ipcMain, Menu, Tray } = require('electron')
 const path = require("path");
 const fs = require("fs");
-// import MediaDevices from 'media-devices'
-
-
-
-
-// require('@electron/remote/main').initialize()
-
 
 // create global variable to prevent discarding of win in garbage collection
-let win;
-
+let win
+let tray
 
 function createWindow(){
     const win = new BrowserWindow({
@@ -35,6 +28,17 @@ function createWindow(){
     //open chrome developer tools in separate window
     win.webContents.openDevTools({ mode: 'detach' });
 
+    //create tray icon and context menu
+    app.whenReady().then(() => {
+        tray = new Tray('inverted-speaker.ico')
+        const contextMenu = Menu.buildFromTemplate([
+            { id: 'Open', label: 'Open', click: () => win.show() },
+            { type: 'separator' },
+            { id: 'Quit', label: 'Quit', click: () => app.exit() }      
+        ])
+        tray.setToolTip('Windows Audio Device Maintainer')
+        tray.setContextMenu(contextMenu)
+    })
 
     //use icp from electron to send information to the renderer (api bridge is in preload.js)
     ipcMain.on("toMain", (event, arg) => {
@@ -60,21 +64,8 @@ function createWindow(){
     })
 
     ipcMain.on("closeWindow", () => {
-        app.exit()
+        win.hide()
     })
-
-    // MediaDevices.ondevicechange = () => {
-    //     console.log("audio device changed")
-    //   }
-
-      
-
-
 }
 
 app.on('ready', createWindow)
-
-
-
-
-
