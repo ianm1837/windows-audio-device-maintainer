@@ -57,6 +57,9 @@ function App() {
   function filterDeviceData() {
     let tempInputDevData = []
     let tempOutputDevData = []
+    let tempDeviceDataObj = {}
+
+    //TODO: need to convert to device information to store in object
 
     for (let i = 0; i < deviceData.length; i++) {
       if (deviceData[i]["Type"] === "Device"){
@@ -130,10 +133,6 @@ function App() {
               </Paper>
             </Grid>
           </Grid>
-        </Container>
-        <Container>
-          {/* <Button onClick={getSettings}>Load Settings</Button>
-        <Button sx={"float: right; margin-right: 20px;"} onClick={saveSettings}>Save Settings</Button> */}
         </Container>
       </div>
     </ThemeProvider>
