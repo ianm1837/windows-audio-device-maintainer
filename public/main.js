@@ -1,12 +1,64 @@
 const { app, BrowserWindow, ipcMain, Menu, Tray } = require('electron')
 const path = require("path");
 const fs = require("fs");
+const { exec } = require('child_process')
 
 // create global variable to prevent discarding of win in garbage collection
 let win
 let tray
 
+//Create devices.json file to send to app
+function createAudioDeviceList() {
+    exec('svcl-x64\\svcl.exe /sjson svcl-x64\\devices.json', (error, stdout, stderr) => {
+        if(error) {
+            console.error(`error: ${error.message}`)
+            return
+        }
+    
+        if (stderr) {
+            console.error(`stderr: ${stderr}`)
+            return
+        }
+    
+        console.log(`stdout:\n${stdout}`)
+    })
+}
+
+//sets the desired input and output devices
+function setAudioDevice (desiredInput, desiredOutput) {
+    exec(`svcl-x64\\svcl.exe /SetDefault ${desiredInput}`, (error, stdout, stderr) => {
+        if(error) {
+            console.error(`error: ${error.message}`)
+            return
+        }
+    
+        if (stderr) {
+            console.error(`stderr: ${stderr}`)
+            return
+        }
+    
+        console.log(`stdout:\n${stdout}`)
+    })
+
+    exec(`svcl-x64\\svcl.exe /SetDefault ${desiredOutput}`, (error, stdout, stderr) => {
+        if(error) {
+            console.error(`error: ${error.message}`)
+            return
+        }
+    
+        if (stderr) {
+            console.error(`stderr: ${stderr}`)
+            return
+        }
+    
+        console.log(`stdout:\n${stdout}`)
+    })
+}
+
+//create main process window
 function createWindow(){
+    createAudioDeviceList()
+
     const win = new BrowserWindow({
         frame: false,
         width: 715,
@@ -47,6 +99,7 @@ function createWindow(){
     })
 
     ipcMain.on("saveSettings", (event, arg) => {
+        //setAudioDevice(arg.inputValue but command friendly id, arg.outputValue but command friendly id)
         let data = JSON.stringify(arg)
         fs.writeFileSync('settings.json', data)
     })
@@ -58,14 +111,17 @@ function createWindow(){
     })
 
     ipcMain.on("readDeviceData", (event, arg) => {
-        let rawDeviceData = fs.readFileSync('./svcl-x64/devices2.json')
+        let rawDeviceData = fs.readFileSync('./svcl-x64/devices.json')
         let deviceData = JSON.parse(rawDeviceData.toString().replace(/^\uFEFF/, ""))
         win.webContents.send("deviceData", deviceData)
     })
 
     ipcMain.on("closeWindow", () => {
         win.hide()
-    })
+    });
+
+    
 }
 
 app.on('ready', createWindow)
+
