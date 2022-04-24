@@ -21,6 +21,7 @@ function App() {
   const [deviceData, setDeviceData] = useState() 
   const [filteredInputDeviceData, setFilteredInputDeviceData] = useState([])
   const [filteredOutputDeviceData, setFilteredOutputDeviceData] = useState([])
+  const [filteredDeviceData, setFilteredDeviceData] = useState({})
 
   useEffect(appStart, [])
   useEffect(() => {if(deviceData)filterDeviceData()}, [deviceData])
@@ -64,15 +65,23 @@ function App() {
     for (let i = 0; i < deviceData.length; i++) {
       if (deviceData[i]["Type"] === "Device"){
         if (deviceData[i]["Direction"] === "Capture") {
-          tempInputDevData.push(deviceData[i]["Device Name"])
+          tempDeviceDataObj.inputDeviceName = deviceData[i]["Device Name"]
+          tempDeviceDataObj.cmdInputDeviceName = deviceData[i]["Command-Line Friendly ID"]
+          tempInputDevData.push(tempDeviceDataObj)
+          tempDeviceDataObj = {}
         } 
         else if (deviceData[i]["Direction"] === "Render") {
-          tempOutputDevData.push(deviceData[i]["Device Name"])
-        }   
+          tempDeviceDataObj.outputDeviceName = deviceData[i]["Device Name"]
+          tempDeviceDataObj.cmdOutputDeviceName = deviceData[i]["Command-Line Friendly ID"]
+          tempOutputDevData.push(tempDeviceDataObj)
+          tempDeviceDataObj = {}
+        } 
       } 
     }
     setFilteredInputDeviceData(tempInputDevData)
     setFilteredOutputDeviceData(tempOutputDevData)
+    // console.log(tempInputDevData)
+    // console.log(tempOutputDevData)
   }
 
   function closeWindow() {
@@ -86,7 +95,6 @@ function App() {
   function handleOutputValue(e) {
     setOutputValue(e.target.value)
   }
-
 
   return (
     <ThemeProvider theme={darkTheme}>
@@ -110,7 +118,7 @@ function App() {
                   <Select id="input-device-selection" value={inputValue} onChange={handleInputValue}>
                   
                     {filteredInputDeviceData.map(device => (
-                      <MenuItem value={device}>{device}</MenuItem>
+                      <MenuItem value={device.inputDeviceName}>{device.inputDeviceName}</MenuItem>
                     ))}
                   </Select>
                 </FormControl>
@@ -126,7 +134,7 @@ function App() {
                   <Select  id="output-device-selection" value={outputValue} onChange={handleOutputValue}>
                   
                     {filteredOutputDeviceData.map(device => (
-                        <MenuItem value={device}>{device}</MenuItem>
+                        <MenuItem value={device.outputDeviceName}>{device.outputDeviceName}</MenuItem>
                       ))}
                   </Select>
                 </FormControl>
