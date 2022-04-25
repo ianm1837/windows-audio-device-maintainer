@@ -25,8 +25,9 @@ function createAudioDeviceList() {
 }
 
 //sets the desired input and output devices
-function setAudioDevice (desiredInput, desiredOutput) {
-    exec(`svcl-x64\\svcl.exe /SetDefault ${desiredInput}`, (error, stdout, stderr) => {
+function setInputDevice (desiredInput) {
+    console.log(`svcl-x64\\svcl.exe /SetDefault "${desiredInput}" all`)
+    exec(`svcl-x64\\svcl.exe /SetDefault "${desiredInput}" all`, (error, stdout, stderr) => {
         if(error) {
             console.error(`error: ${error.message}`)
             return
@@ -39,8 +40,11 @@ function setAudioDevice (desiredInput, desiredOutput) {
     
         console.log(`stdout:\n${stdout}`)
     })
+}
 
-    exec(`svcl-x64\\svcl.exe /SetDefault ${desiredOutput}`, (error, stdout, stderr) => {
+function setOutputDevice (desiredOutput) {
+    console.log(`svcl-x64\\svcl.exe /SetDefault "${desiredOutput}" all`)
+    exec(`svcl-x64\\svcl.exe /SetDefault "${desiredOutput}" all`, (error, stdout, stderr) => {
         if(error) {
             console.error(`error: ${error.message}`)
             return
@@ -120,6 +124,15 @@ function createWindow(){
         win.hide()
     });
 
+    ipcMain.on("setInputDevice", (event, data) => {
+        console.log(data)
+        setInputDevice(data)
+    })
+
+    ipcMain.on("setOutputDevice", (event, data) => {
+        console.log(data)
+        setOutputDevice(data)
+    })
     
 }
 

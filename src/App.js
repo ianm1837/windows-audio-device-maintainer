@@ -28,16 +28,12 @@ function App() {
   useEffect(() => {if(inputValue)saveSettings()}, [inputValue])
   useEffect(() => {if(outputValue)saveSettings()}, [outputValue])
 
-  function appStart() {
-    getDeviceData()
-    getSettings()
-  }
-
   function saveSettings() {
     const settingsObj = {}
     settingsObj.inputValue = inputValue
     settingsObj.outputValue = outputValue
     window.api.send("saveSettings", settingsObj)
+    setAudioDevices()
   }
 
   function getSettings() {
@@ -60,18 +56,16 @@ function App() {
     let tempOutputDevData = []
     let tempDeviceDataObj = {}
 
-    //TODO: need to convert to device information to store in object
-
     for (let i = 0; i < deviceData.length; i++) {
       if (deviceData[i]["Type"] === "Device"){
         if (deviceData[i]["Direction"] === "Capture") {
-          tempDeviceDataObj.inputDeviceName = deviceData[i]["Device Name"]
+          tempDeviceDataObj.inputDeviceName = deviceData[i]["Name"]
           tempDeviceDataObj.cmdInputDeviceName = deviceData[i]["Command-Line Friendly ID"]
           tempInputDevData.push(tempDeviceDataObj)
           tempDeviceDataObj = {}
         } 
         else if (deviceData[i]["Direction"] === "Render") {
-          tempDeviceDataObj.outputDeviceName = deviceData[i]["Device Name"]
+          tempDeviceDataObj.outputDeviceName = deviceData[i]["Name"]
           tempDeviceDataObj.cmdOutputDeviceName = deviceData[i]["Command-Line Friendly ID"]
           tempOutputDevData.push(tempDeviceDataObj)
           tempDeviceDataObj = {}
@@ -80,12 +74,15 @@ function App() {
     }
     setFilteredInputDeviceData(tempInputDevData)
     setFilteredOutputDeviceData(tempOutputDevData)
-    // console.log(tempInputDevData)
-    // console.log(tempOutputDevData)
   }
 
   function closeWindow() {
     window.api.send("closeWindow")
+  }
+
+  function setAudioDevices() {
+    window.api.send("setInputDevice", inputValue)
+    window.api.send("setOutputDevice", outputValue)
   }
 
   function handleInputValue(e) {
@@ -96,6 +93,11 @@ function App() {
     setOutputValue(e.target.value)
   }
 
+  function appStart() {
+    getDeviceData()
+    getSettings()
+  }
+
   return (
     <ThemeProvider theme={darkTheme}>
       <div className="App">
@@ -104,6 +106,8 @@ function App() {
             <Typography variant="h6" color="inherit" component="div" sx={{ flexGrow: 1 }}>
               Audio Device Maintainer  
             </Typography>
+            
+            <Button sx={ "-webkit-app-region: no-drag;"} onClick={setAudioDevices}>Set Devices</Button>
             <Button sx={"margin-right: -20; -webkit-app-region: no-drag;"} onClick={closeWindow}>&#10006;</Button>
           </Toolbar>
         </AppBar>
@@ -118,7 +122,7 @@ function App() {
                   <Select id="input-device-selection" value={inputValue} onChange={handleInputValue}>
                   
                     {filteredInputDeviceData.map(device => (
-                      <MenuItem value={device.inputDeviceName}>{device.inputDeviceName}</MenuItem>
+                      <MenuItem value={device.cmdInputDeviceName}>{device.inputDeviceName}</MenuItem>
                     ))}
                   </Select>
                 </FormControl>
@@ -134,7 +138,7 @@ function App() {
                   <Select  id="output-device-selection" value={outputValue} onChange={handleOutputValue}>
                   
                     {filteredOutputDeviceData.map(device => (
-                        <MenuItem value={device.outputDeviceName}>{device.outputDeviceName}</MenuItem>
+                        <MenuItem value={device.cmdOutputDeviceName}>{device.outputDeviceName}</MenuItem>
                       ))}
                   </Select>
                 </FormControl>
