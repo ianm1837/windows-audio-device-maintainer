@@ -11,22 +11,68 @@ const darkTheme = createTheme({
 
 function App() {
 
-  //listens to audio device changes and will run command to re-set to desired device
-  MediaDevices.ondevicechange = () => {
-    console.log("audio device changed")
-  }
-
   const [inputValue, setInputValue] = useState('') 
   const [outputValue, setOutputValue] = useState('') 
   const [deviceData, setDeviceData] = useState() 
   const [filteredInputDeviceData, setFilteredInputDeviceData] = useState([])
   const [filteredOutputDeviceData, setFilteredOutputDeviceData] = useState([])
-  const [filteredDeviceData, setFilteredDeviceData] = useState({})
+  // const [filteredDeviceData, setFilteredDeviceData] = useState({})
 
   useEffect(appStart, [])
+  // eslint-disable-next-line
   useEffect(() => {if(deviceData)filterDeviceData()}, [deviceData])
-  useEffect(() => {if(inputValue)saveSettings()}, [inputValue])
-  useEffect(() => {if(outputValue)saveSettings()}, [outputValue])
+  // eslint-disable-next-line
+  useEffect(() => {if(inputValue || outputValue)saveSettings()}, [inputValue, outputValue])
+
+  useEffect(() => {
+    // check if inputValue or outputValue '' 
+    if(inputValue && outputValue){
+    // iterate over current devices and check if selected devices are present
+    let doesCurrentInputExist
+    let doesCurrentOutputExist
+    // console.log('filteredInputDeviceData', filteredInputDeviceData)
+
+      for (let i = 0;i < filteredInputDeviceData.length; i++){
+        // console.log('filteredInputDeviceData[i].cmdInputDeviceName', filteredInputDeviceData[i].cmdInputDeviceName)
+        // console.log('inputValue', inputValue)
+        if (filteredInputDeviceData[i].cmdInputDeviceName === inputValue) {
+          // console.log('filteredInputDeviceData', filteredInputDeviceData[i])
+          doesCurrentInputExist = true
+        }
+      }
+      for (let j = 0;j < filteredOutputDeviceData.length; j++){
+        if (filteredOutputDeviceData[j].cmdOutputDeviceName === outputValue) {
+          // console.log('filteredOutputDeviceData', filteredOutputDeviceData[j])
+          doesCurrentOutputExist = true
+        }
+      }
+
+    // if not change Select to inputValue or outputValue to ''
+    // throw windows notification and open main window
+
+    if (!doesCurrentInputExist) {
+      setInputValue('')
+      window.api.send("inputDeviceMissing")
+    }
+    if (!doesCurrentOutputExist) {
+      setOutputValue('')
+      window.api.send("outputDeviceMissing")
+    }
+    // add double click to open main window to system tray
+
+    }//build it    
+    // eslint-disable-next-line
+  }, [filteredOutputDeviceData, filteredInputDeviceData])
+
+  //listens to audio device changes and will run command to re-set to desired device
+  MediaDevices.ondevicechange = () => {
+    console.log("audio device changed")
+    if (inputValue && outputValue) {
+      saveSettings()
+      // call for updated list of devices
+      getDeviceData()
+    } 
+  }
 
   function saveSettings() {
     const settingsObj = {}
@@ -54,21 +100,20 @@ function App() {
   function filterDeviceData() {
     let tempInputDevData = []
     let tempOutputDevData = []
-    let tempDeviceDataObj = {}
 
     for (let i = 0; i < deviceData.length; i++) {
       if (deviceData[i]["Type"] === "Device"){
         if (deviceData[i]["Direction"] === "Capture") {
-          tempDeviceDataObj.inputDeviceName = deviceData[i]["Name"]
-          tempDeviceDataObj.cmdInputDeviceName = deviceData[i]["Command-Line Friendly ID"]
-          tempInputDevData.push(tempDeviceDataObj)
-          tempDeviceDataObj = {}
+          tempInputDevData.push({
+            inputDeviceName: deviceData[i]["Name"],
+            cmdInputDeviceName: deviceData[i]["Command-Line Friendly ID"]
+          })
         } 
         else if (deviceData[i]["Direction"] === "Render") {
-          tempDeviceDataObj.outputDeviceName = deviceData[i]["Name"]
-          tempDeviceDataObj.cmdOutputDeviceName = deviceData[i]["Command-Line Friendly ID"]
-          tempOutputDevData.push(tempDeviceDataObj)
-          tempDeviceDataObj = {}
+          tempOutputDevData.push({
+            outputDeviceName: deviceData[i]["Name"],
+            cmdOutputDeviceName: deviceData[i]["Command-Line Friendly ID"]
+          })
         } 
       } 
     }
@@ -106,8 +151,6 @@ function App() {
             <Typography variant="h6" color="inherit" component="div" sx={{ flexGrow: 1 }}>
               Audio Device Maintainer  
             </Typography>
-            
-            <Button sx={ "-webkit-app-region: no-drag;"} onClick={setAudioDevices}>Set Devices</Button>
             <Button sx={"margin-right: -20; -webkit-app-region: no-drag;"} onClick={closeWindow}>&#10006;</Button>
           </Toolbar>
         </AppBar>

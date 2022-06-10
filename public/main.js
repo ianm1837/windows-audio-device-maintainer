@@ -1,7 +1,7 @@
-const { app, BrowserWindow, ipcMain, Menu, Tray } = require('electron')
+const { app, BrowserWindow, ipcMain, Menu, Tray, Notification } = require('electron')
 const path = require("path");
 const fs = require("fs");
-const { exec } = require('child_process')
+const { execSync } = require('child_process')
 
 // create global variable to prevent discarding of win in garbage collection
 let win
@@ -9,55 +9,23 @@ let tray
 
 //Create devices.json file to send to app
 function createAudioDeviceList() {
-    exec('svcl-x64\\svcl.exe /sjson svcl-x64\\devices.json', (error, stdout, stderr) => {
-        if(error) {
-            console.error(`error: ${error.message}`)
-            return
-        }
-    
-        if (stderr) {
-            console.error(`stderr: ${stderr}`)
-            return
-        }
-    
-        console.log(`stdout:\n${stdout}`)
-    })
+    execSync('svcl-x64\\svcl.exe /sjson svcl-x64\\devices.json')
 }
 
 //sets the desired input and output devices
 function setInputDevice (desiredInput) {
     console.log(`svcl-x64\\svcl.exe /SetDefault "${desiredInput}" all`)
-    exec(`svcl-x64\\svcl.exe /SetDefault "${desiredInput}" all`, (error, stdout, stderr) => {
-        if(error) {
-            console.error(`error: ${error.message}`)
-            return
-        }
-    
-        if (stderr) {
-            console.error(`stderr: ${stderr}`)
-            return
-        }
-    
-        console.log(`stdout:\n${stdout}`)
-    })
+    execSync(`svcl-x64\\svcl.exe /SetDefault "${desiredInput}" all`)
 }
 
 function setOutputDevice (desiredOutput) {
     console.log(`svcl-x64\\svcl.exe /SetDefault "${desiredOutput}" all`)
-    exec(`svcl-x64\\svcl.exe /SetDefault "${desiredOutput}" all`, (error, stdout, stderr) => {
-        if(error) {
-            console.error(`error: ${error.message}`)
-            return
-        }
-    
-        if (stderr) {
-            console.error(`stderr: ${stderr}`)
-            return
-        }
-    
-        console.log(`stdout:\n${stdout}`)
-    })
+    execSync(`svcl-x64\\svcl.exe /SetDefault "${desiredOutput}" all`)
 }
+
+function showNotification (title, body) {
+    new Notification({ title: title, body: body }).show()
+  }
 
 //create main process window
 function createWindow(){
@@ -82,7 +50,7 @@ function createWindow(){
     // win.loadFile('public/main.html')
 
     //open chrome developer tools in separate window
-    win.webContents.openDevTools({ mode: 'detach' });
+    // win.webContents.openDevTools({ mode: 'detach' });
 
     //create tray icon and context menu
     app.whenReady().then(() => {
@@ -94,6 +62,7 @@ function createWindow(){
         ])
         tray.setToolTip('Windows Audio Device Maintainer')
         tray.setContextMenu(contextMenu)
+        tray.on('double-click', () => win.show())
     })
 
     //use icp from electron to send information to the renderer (api bridge is in preload.js)
@@ -115,6 +84,7 @@ function createWindow(){
     })
 
     ipcMain.on("readDeviceData", (event, arg) => {
+        createAudioDeviceList()
         let rawDeviceData = fs.readFileSync('./svcl-x64/devices.json')
         let deviceData = JSON.parse(rawDeviceData.toString().replace(/^\uFEFF/, ""))
         win.webContents.send("deviceData", deviceData)
@@ -125,15 +95,22 @@ function createWindow(){
     });
 
     ipcMain.on("setInputDevice", (event, data) => {
-        console.log(data)
         setInputDevice(data)
     })
 
     ipcMain.on("setOutputDevice", (event, data) => {
-        console.log(data)
         setOutputDevice(data)
     })
+
+    ipcMain.on("inputDeviceMissing", () => {
+        win.show()
+        showNotification("Selected Input no longer present","Please select new input device")
+    })
     
+    ipcMain.on("outputDeviceMissing", () => {
+        win.show()
+        showNotification("Selected Output no longer present","Please select new output device")
+    })
 }
 
 app.on('ready', createWindow)
